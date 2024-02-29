@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import os
 
-imageLocation = "./PythonScript/aiGeneratedPixelArt-3.jpg"
+imageLocation = "./PythonScript/aiGeneratedPixelArt-1-P.jpeg"
 
 #Palette Aquisition
 paletteSize = 8
@@ -13,7 +13,7 @@ plt.imshow([[palette[i] for i in range(paletteSize)]])
 plt.show()
 
 # Image Generation
-n = 64*2
+n = 64
 originalImage = Image.open(imageLocation)
 reducedImage = originalImage.resize((n, n), Image.BILINEAR)
 pixelImage = reducedImage.resize(originalImage.size, Image.NEAREST)
