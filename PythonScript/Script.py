@@ -1,21 +1,27 @@
 from colorthief import ColorThief
 import matplotlib.pyplot as plt
 from PIL import Image
+import os
 
+imageLocation = "./PythonScript/aiGeneratedPixelArt-3.jpg"
 
 #Palette Aquisition
 paletteSize = 8
-ct = ColorThief("./PythonScript/testImage1.webp")
-palette = ct.get_palette(color_count=6)
-plt.imshow([[palette[i] for i in range(6)]])
+ct = ColorThief(imageLocation)
+palette = ct.get_palette(color_count=paletteSize+2)
+plt.imshow([[palette[i] for i in range(paletteSize)]])
 plt.show()
 
 # Image Generation
-n = 256+256
-originalImage = Image.open("./PythonScript/testImage1.webp")
+n = 64*2
+originalImage = Image.open(imageLocation)
 reducedImage = originalImage.resize((n, n), Image.BILINEAR)
 pixelImage = reducedImage.resize(originalImage.size, Image.NEAREST)
-pixelImage.save("ai1.png")
+if os.path.exists("ai1.png"):
+  os.remove("ai1.png")
+  pixelImage.save("ai1.png")
+else: 
+  pixelImage.save("ai1.png")
 
 
 # img = Image.open("./PythonScript/16bitImage.png")
