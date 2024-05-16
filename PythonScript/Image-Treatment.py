@@ -1,13 +1,3 @@
-# from colorthief import ColorThief
-# import matplotlib.pyplot as plt
-
-# #Palette Aquisition
-# paletteSize = 8
-# ct = ColorThief(imageLocation)
-# palette = ct.get_palette(color_count=paletteSize+2)
-# plt.imshow([[palette[i] for i in range(paletteSize)]])
-# plt.show()
-
 from PIL import Image
 import os
 
@@ -23,22 +13,30 @@ try:
     reducedImage = originalImage.resize((n, n), Image.BILINEAR)
     pixelImage = reducedImage.resize(originalImage.size, Image.NEAREST)
 
-    # Save original image with "-raw" suffix
-    raw_filename = f"./{filename}-raw{ext}"
-    if os.path.exists(raw_filename):
-        os.remove(raw_filename)
-    originalImage.save(raw_filename)
+    # Convert image to 'P' mode (each pixel's color value is unique)
+    unique_color_image = pixelImage.convert("P", palette=Image.ADAPTIVE, colors=256)
 
-    # Save pixelated image with "-pixel-treated" suffix
-    treated_filename = f"./{filename}-pixel-treated{ext}"
-    if os.path.exists(treated_filename):
-        os.remove(treated_filename)
-    pixelImage.save(treated_filename)
+    # Get the color values
+    color_counts = unique_color_image.getcolors()
 
-    # Print console log if no errors occurred
-    print(f"Images processed successfully with n={n}.")
+    # Get the image palette
+    palette = unique_color_image.getpalette()
+
+    # Create a dictionary to store RGB values for each color index
+    color_index_to_rgb = {}
+
+    # Loop through the color counts and map color indices to RGB values
+    for count, index in color_counts:
+        # Get RGB values from the palette
+        rgb = palette[index * 3: index * 3 + 3]
+        # Store RGB values in the dictionary
+        color_index_to_rgb[index] = rgb
+
+    # Print the RGB values corresponding to the most concurrent distinct colors
+    print("Four most concurrent distinct colors (RGB values):")
+    for count, index in sorted(color_counts, key=lambda x: x[0], reverse=True)[:8]:
+        rgb = color_index_to_rgb[index]
+        print(f"Count: {count}, RGB: {rgb}")
 
 except Exception as e:
     print(f"An error occurred: {e}")
-
-
