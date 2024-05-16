@@ -34,7 +34,7 @@ try:
 
     # Print the RGB values corresponding to the most concurrent distinct colors
     print("Four most concurrent distinct colors (RGB values):")
-    for count, index in sorted(color_counts, key=lambda x: x[0], reverse=True)[:8]:
+    for count, index in sorted(color_counts, key=lambda x: x[0], reverse=True)[:4]:
         rgb = color_index_to_rgb[index]
         print(f"Count: {count}, RGB: {rgb}")
 
