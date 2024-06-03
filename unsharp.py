@@ -16,22 +16,11 @@ def unsharp_mask(image, kernel_size=(5, 5), sigma=1.0, amount=0.3, threshold=0):
     Returns:
     - Sharpened image
     """
-    # Step 1: Apply Gaussian Blur to the image
-    blurred = cv2.GaussianBlur(image, kernel_size, sigma)
-    
-    # Step 2: Create the mask (difference between the original and blurred image)
-    mask = image - blurred
-    
-    # Step 3: Add the mask to the original image to enhance edges
-    sharpened = image + amount * mask
-    
-    # Step 4: Clip the values to ensure they are within [0, 255]
-    sharpened = np.clip(sharpened, 0, 255)
-    
-    # Step 5: Convert the image back to uint8 type
-    sharpened = sharpened.astype(np.uint8)
-    
-    return sharpened
+    blurred_image = cv2.GaussianBlur(image, kernel_size, sigma)
+    difference = cv2.subtract(image, blurred_image)
+    sharpened_image = cv2.addWeighted(image, 1 + amount, difference, amount, 0)
+    sharpened_image = np.clip(sharpened_image, 0, 255).astype(np.uint8)
+    return sharpened_image
 
 # Read the color image
 image = cv2.imread(r"C:\Development\aiicp\Images\Untreated\river.jpg")
@@ -49,6 +38,9 @@ b_sharpened = unsharp_mask(b)
 
 # Merge the sharpened channels back into a single image
 sharpened_image = cv2.merge([r_sharpened, g_sharpened, b_sharpened])
+processed_image.save("C:\Development\aiicp\Images\Treated\river.png")
+
+
 
 # Display the results
 plt.figure(figsize=(10, 5))
