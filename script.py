@@ -37,7 +37,7 @@ def simple_rounding(image, palette):
 @numba.jit(nopython=True, nogil=True)
 def quantize_to_palette(pixel, palette):
     distances = np.sqrt(np.sum((palette - pixel) ** 2, axis=1))
-    print(distances)
+    # print(distances)
     return palette[np.argmin(distances)]
 
 def reduce_palette(image_data, n_colors):
@@ -91,14 +91,14 @@ def process_image(image_path, pixelation_size, n_colors, use_floyd_steinberg):
 
 
 # Path to your imagem
-image_path = r"C:\Development\aiicp\Images\Untreated\river.jpg"
+image_path = r"C:\Development\aiicp\Images\Untreated\capybara.jpg"
 # filename = os.path.basename(image_path)
 
 # Remove the extension
 old_filename = os.path.splitext(os.path.basename(image_path))[0]
 
 # Desired pixelation size (e.g., 256x256 pixels)
-pixelation_size = 2**8
+pixelation_size = 2**7
 n_colors = 2**4
 image_contrast = 2
 
