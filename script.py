@@ -3,6 +3,28 @@ import numpy as np
 from PIL import Image, ImageEnhance
 from sklearn.cluster import KMeans
 import os
+import cv2
+
+def edge_detection(image_path, save_directory):
+    """
+    Detect edges in an image and save the result in the specified directory.
+
+    Parameters:
+    image_path (str): Path to the input image.
+    save_directory (str): Directory where the edge-detected image will be saved.
+
+    Returns:
+    str: Path to the saved edge-detected image.
+    """
+    image = cv2.imread(image_path)
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray_image, 100, 200)
+
+    base_filename = os.path.splitext(os.path.basename(image_path))[0]
+    edge_filename = os.path.join(save_directory, f"{base_filename}_edges.jpg")
+    cv2.imwrite(edge_filename, edges)
+    print(f"Edge detection done! Edge file: {edge_filename}")
+    return edge_filename
 
 @numba.jit(nopython=True, nogil=True)
 def floyd_steinberg(image, palette):
@@ -37,80 +59,132 @@ def simple_rounding(image, palette):
 @numba.jit(nopython=True, nogil=True)
 def quantize_to_palette(pixel, palette):
     distances = np.sqrt(np.sum((palette - pixel) ** 2, axis=1))
-    # print(distances)
     return palette[np.argmin(distances)]
 
 def reduce_palette(image_data, n_colors):
-    # Flatten the image array and fit KMeans
+    """
+    Reduce the number of colors in an image using KMeans clustering.
+
+    Parameters:
+    image_data (np.ndarray): The image data.
+    n_colors (int): The number of colors to reduce to.
+
+    Returns:
+    np.ndarray: The reduced color palette.
+    """
     pixels = image_data.reshape(-1, 3)
     kmeans = KMeans(n_clusters=n_colors, random_state=0).fit(pixels)
-    # print(image_data)
     return kmeans.cluster_centers_
 
 def create_custom_palette():
-    # Define the colors
+    """
+    Create a custom color palette.
+
+    Returns:
+    np.ndarray: The custom color palette.
+    """
     black = np.array([0, 0, 0])
     red = np.array([1, 0, 0])
     white = np.array([1, 1, 1])
-    
-    # Create the palette array
-    palette = np.array([black, red, white])
-    
-    return palette
+    return np.array([black, red, white])
 
-def process_image(image_path, pixelation_size, n_colors, use_floyd_steinberg):
-    # Load image
+def process_image(image_path, pixelation_size, n_colors, contrast, use_floyd_steinberg):
+    """
+    Process an image by enhancing contrast, reducing its palette, and applying dithering.
+
+    Parameters:
+    image_path (str): Path to the input image.
+    pixelation_size (int): The size to which the image will be reduced.
+    n_colors (int): The number of colors in the reduced palette.
+    contrast (float): The contrast enhancement factor.
+    use_floyd_steinberg (bool): Whether to use Floyd-Steinberg dithering.
+
+    Returns:
+    Image: The processed image.
+    """
     image = Image.open(image_path).convert("RGB")
-    
-    # Reduce the size (pixelate)
+    enhancer = ImageEnhance.Contrast(image)
+    image = enhancer.enhance(contrast)
+
     reduced_image = image.resize((pixelation_size, pixelation_size), Image.BILINEAR)
-    
-    # Convert the reduced image to a NumPy array and normalize
     reduced_image_data = np.array(reduced_image).astype(np.float32) / 255.0
-    
-    # Reduce the palette of the image
+
     palette = reduce_palette(reduced_image_data, n_colors)
-    # palette = create_custom_palette()
     
-    # Apply the chosen dithering method with the reduced palette
     if use_floyd_steinberg:
         dithered_image = floyd_steinberg(reduced_image_data, palette)
     else:
         dithered_image = simple_rounding(reduced_image_data, palette)
     
-    # Convert back to 8-bit per channel
     dithered_image = (dithered_image * 255).astype(np.uint8)
-    
-    # Convert NumPy array back to an image
     result_image = Image.fromarray(dithered_image)
-    
-    # Resize back to original size using nearest neighbor to maintain pixelation effect
     pixel_image = result_image.resize(image.size, Image.NEAREST)
     
     return pixel_image
 
+def overlay_images(original_image_path, edge_image_path, save_directory):
+    """
+    Overlay the edge-detected image on the original image and save the result.
 
-# Path to your imagem
-image_path = r"C:\Development\aiicp\Images\Untreated\capybara.jpg"
-# filename = os.path.basename(image_path)
+    Parameters:
+    original_image_path (str): Path to the original image.
+    edge_image_path (str): Path to the edge-detected image.
+    save_directory (str): Directory where the overlaid image will be saved.
+    """
+    original_image = Image.open(original_image_path).convert("RGB")
+    edge_image = Image.open(edge_image_path).convert("L")  # Convert to grayscale
+
+    # Ensure the edge image is the same size as the original image
+    edge_image = edge_image.resize(original_image.size, Image.NEAREST)
+
+    # Create a mask from the edge image where the edges are white
+    mask = edge_image.point(lambda p: p > 0 and 255)
+
+    # Create an image with red edges
+    red_edges = Image.new("RGB", original_image.size, (255, 0, 0))
+    red_edges.paste(original_image, mask=Image.fromarray(255 - np.array(mask)))
+
+    # Overlay the red edges onto the original image
+    overlaid_image = Image.composite(original_image, red_edges, mask)
+
+    # Save the overlaid image
+    base_filename = os.path.splitext(os.path.basename(original_image_path))[0]
+    overlay_filename = os.path.join(save_directory, f"{base_filename}_overlay.jpg")
+    overlaid_image.save(overlay_filename)
+    print(f"Overlay done! Overlay file: {overlay_filename}")
+
+    # Save a copy of the original image in the same directory
+    original_copy_filename = os.path.join(save_directory, f"{base_filename}_original.jpg")
+    original_image.save(original_copy_filename)
+    print(f"Original image copy saved! File: {original_copy_filename}")
+
+# Original Image
+image_original = r"C:\Development\AIICP\Images\Untreated\mountain.jpg"
 
 # Remove the extension
-old_filename = os.path.splitext(os.path.basename(image_path))[0]
+old_filename = os.path.splitext(os.path.basename(image_original))[0]
 
 # Desired pixelation size (e.g., 256x256 pixels)
 pixelation_size = 2**7
 n_colors = 2**4
-image_contrast = 2
+image_contrast = 1
 
 # Choose dithering method
 use_floyd_steinberg = False  # Set to True for Floyd-Steinberg, False for simple rounding
 
 # Process the image
-processed_image = process_image(image_path, pixelation_size, n_colors, use_floyd_steinberg)
+processed_image = process_image(image_original, pixelation_size, n_colors, image_contrast, use_floyd_steinberg)
 
 # Construct the filename using pixelation_size and n_colors
 new_filename = f"{old_filename}_{pixelation_size}_{n_colors}bit_{image_contrast}Contrast_{use_floyd_steinberg}.png"
 save_path = rf"C:\Development\aiicp\Images\Treated\{new_filename}"
+save_directory = os.path.dirname(save_path)
 processed_image.save(save_path)
+
+# Perform edge detection
+# edge_image_path = edge_detection(image_original, save_directory)
+
+# Overlay images
+# overlay_images(image_original, edge_image_path, save_directory)
 
 print(f"It's Done! Name file: {new_filename}")
