@@ -55,19 +55,27 @@ def reduce_palette(image_data, n_colors):
     kmeans = KMeans(n_clusters=n_colors, random_state=0).fit(pixels)
     return kmeans.cluster_centers_
 
-def create_custom_palette():
+def create_custom_palette(use_custom_palette=True):
     """
-    Create a custom color palette.
+    Create a custom color palette or detect palette from image data.
+
+    Parameters:
+    use_custom_palette (bool): Whether to use the custom palette.
 
     Returns:
-    np.ndarray: The custom color palette.
+    np.ndarray: The custom color palette or detected palette.
     """
-    black = np.array([0, 0, 0])
-    red = np.array([1, 0, 0])
-    white = np.array([1, 1, 1])
-    return np.array([black, red, white])
+    if use_custom_palette:
+        black = np.array([0, 0, 0])
+        red1 = np.array([1, 0, 0])
+        red2 = np.array([0.5, 0, 0])
+        white = np.array([1, 1, 1])
+        return np.array([black, red1, red2, white])
+    else:
+        # Return detected palette from image data
+        return None  # This will be handled in the process_image function
 
-def apply_unsharp_mask(image, kernel_size=(5, 5), sigma=1.0, strength=6):
+def apply_unsharp_mask(image, kernel_size=(5, 5), sigma=1.0, strength=12):
     """
     Apply an unsharp mask to an image.
 
@@ -85,7 +93,7 @@ def apply_unsharp_mask(image, kernel_size=(5, 5), sigma=1.0, strength=6):
     sharpened = np.clip(sharpened, 0, 255)
     return sharpened.astype(np.uint8)
 
-def process_image(image_path, pixelation_size, n_colors, contrast, use_floyd_steinberg, apply_unsharp):
+def process_image(image_path, pixelation_size, n_colors, contrast, use_floyd_steinberg, apply_unsharp, use_custom_palette):
     """
     Process an image by enhancing contrast, reducing its palette, and applying dithering.
 
@@ -96,6 +104,7 @@ def process_image(image_path, pixelation_size, n_colors, contrast, use_floyd_ste
     contrast (float): The contrast enhancement factor.
     use_floyd_steinberg (bool): Whether to use Floyd-Steinberg dithering.
     apply_unsharp (bool): Whether to apply unsharp masking.
+    use_custom_palette (bool): Whether to use the custom predefined palette.
 
     Returns:
     Image: The processed image.
@@ -112,7 +121,13 @@ def process_image(image_path, pixelation_size, n_colors, contrast, use_floyd_ste
     reduced_image = image.resize((pixelation_size, pixelation_size), Image.BILINEAR)
     reduced_image_data = np.array(reduced_image).astype(np.float32) / 255.0
 
-    palette = reduce_palette(reduced_image_data, n_colors)
+    if use_custom_palette:
+        palette = create_custom_palette(use_custom_palette=True)
+        palette_info = "CustomPalette"
+    else:
+        # Automatically detect palette from image data
+        palette = reduce_palette(reduced_image_data, n_colors)
+        palette_info = f"{n_colors}bitPalette"
     
     if use_floyd_steinberg:
         dithered_image = floyd_steinberg(reduced_image_data, palette)
@@ -123,7 +138,7 @@ def process_image(image_path, pixelation_size, n_colors, contrast, use_floyd_ste
     result_image = Image.fromarray(dithered_image)
     pixel_image = result_image.resize(image.size, Image.NEAREST)
     
-    return pixel_image
+    return pixel_image, palette_info
 
 # Original Image
 image_original = r"C:\Development\AIICP\Images\Untreated\mountain.jpg"
@@ -137,19 +152,22 @@ n_colors = 2**8
 image_contrast = 1
 
 # Choose dithering method
-use_floyd_steinberg = False  # Set to True for Floyd-Steinberg, False for simple rounding
+use_floyd_steinberg = True  # Set to True for Floyd-Steinberg, False for simple rounding
+
+# Choose whether to use custom palette or detect from image
+use_custom_palette = False  # Set to True to use custom predefined palette, False to detect from image
 
 # Process the image with unsharp mask
 apply_unsharp = True  # Set to True to apply unsharp masking
-processed_image_with_unsharp = process_image(image_original, pixelation_size, n_colors, image_contrast, use_floyd_steinberg, apply_unsharp)
+processed_image_with_unsharp, palette_info = process_image(image_original, pixelation_size, n_colors, image_contrast, use_floyd_steinberg, apply_unsharp, use_custom_palette)
 
 # Process the image without unsharp mask
 apply_unsharp = False  # Set to False to not apply unsharp masking
-processed_image_without_unsharp = process_image(image_original, pixelation_size, n_colors, image_contrast, use_floyd_steinberg, apply_unsharp)
+processed_image_without_unsharp, palette_info = process_image(image_original, pixelation_size, n_colors, image_contrast, use_floyd_steinberg, apply_unsharp, use_custom_palette)
 
 # Construct the filenames
-new_filename_with_unsharp = f"{old_filename}_{pixelation_size}_{n_colors}bit_{image_contrast}Contrast_{use_floyd_steinberg}_unsharp.png"
-new_filename_without_unsharp = f"{old_filename}_{pixelation_size}_{n_colors}bit_{image_contrast}Contrast_{use_floyd_steinberg}_nosharp.png"
+new_filename_with_unsharp = f"{old_filename}_{pixelation_size}_{palette_info}_{image_contrast}'Contrast_{use_floyd_steinberg}_unsharp.png"
+new_filename_without_unsharp = f"{old_filename}_{pixelation_size}_{palette_info}_{image_contrast}Contrast_{use_floyd_steinberg}_nosharp.png"
 
 # Save paths
 save_path_with_unsharp = rf"C:\Development\aiicp\Images\Treated\{new_filename_with_unsharp}"
