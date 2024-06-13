@@ -5,27 +5,6 @@ from sklearn.cluster import KMeans
 import os
 import cv2
 
-def edge_detection(image_path, save_directory):
-    """
-    Detect edges in an image and save the result in the specified directory.
-
-    Parameters:
-    image_path (str): Path to the input image.
-    save_directory (str): Directory where the edge-detected image will be saved.
-
-    Returns:
-    str: Path to the saved edge-detected image.
-    """
-    image = cv2.imread(image_path)
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    edges = cv2.Canny(gray_image, 100, 200)
-
-    base_filename = os.path.splitext(os.path.basename(image_path))[0]
-    edge_filename = os.path.join(save_directory, f"{base_filename}_edges.jpg")
-    cv2.imwrite(edge_filename, edges)
-    print(f"Edge detection done! Edge file: {edge_filename}")
-    return edge_filename
-
 @numba.jit(nopython=True, nogil=True)
 def floyd_steinberg(image, palette):
     Lx, Ly, Lc = image.shape
@@ -88,7 +67,25 @@ def create_custom_palette():
     white = np.array([1, 1, 1])
     return np.array([black, red, white])
 
-def process_image(image_path, pixelation_size, n_colors, contrast, use_floyd_steinberg):
+def apply_unsharp_mask(image, kernel_size=(5, 5), sigma=1.0, strength=6):
+    """
+    Apply an unsharp mask to an image.
+
+    Parameters:
+    image (np.ndarray): The input image.
+    kernel_size (tuple): The size of the Gaussian kernel.
+    sigma (float): The standard deviation of the Gaussian kernel.
+    strength (float): The strength of the sharpening effect.
+
+    Returns:
+    np.ndarray: The sharpened image.
+    """
+    blurred = cv2.GaussianBlur(image, kernel_size, sigma)
+    sharpened = float(strength + 1) * image - float(strength) * blurred
+    sharpened = np.clip(sharpened, 0, 255)
+    return sharpened.astype(np.uint8)
+
+def process_image(image_path, pixelation_size, n_colors, contrast, use_floyd_steinberg, apply_unsharp):
     """
     Process an image by enhancing contrast, reducing its palette, and applying dithering.
 
@@ -98,6 +95,7 @@ def process_image(image_path, pixelation_size, n_colors, contrast, use_floyd_ste
     n_colors (int): The number of colors in the reduced palette.
     contrast (float): The contrast enhancement factor.
     use_floyd_steinberg (bool): Whether to use Floyd-Steinberg dithering.
+    apply_unsharp (bool): Whether to apply unsharp masking.
 
     Returns:
     Image: The processed image.
@@ -105,6 +103,11 @@ def process_image(image_path, pixelation_size, n_colors, contrast, use_floyd_ste
     image = Image.open(image_path).convert("RGB")
     enhancer = ImageEnhance.Contrast(image)
     image = enhancer.enhance(contrast)
+
+    if apply_unsharp:
+        image_data = np.array(image)
+        image_data = apply_unsharp_mask(image_data)
+        image = Image.fromarray(image_data)
 
     reduced_image = image.resize((pixelation_size, pixelation_size), Image.BILINEAR)
     reduced_image_data = np.array(reduced_image).astype(np.float32) / 255.0
@@ -122,69 +125,38 @@ def process_image(image_path, pixelation_size, n_colors, contrast, use_floyd_ste
     
     return pixel_image
 
-def overlay_images(original_image_path, edge_image_path, save_directory):
-    """
-    Overlay the edge-detected image on the original image and save the result.
-
-    Parameters:
-    original_image_path (str): Path to the original image.
-    edge_image_path (str): Path to the edge-detected image.
-    save_directory (str): Directory where the overlaid image will be saved.
-    """
-    original_image = Image.open(original_image_path).convert("RGB")
-    edge_image = Image.open(edge_image_path).convert("L")  # Convert to grayscale
-
-    # Ensure the edge image is the same size as the original image
-    edge_image = edge_image.resize(original_image.size, Image.NEAREST)
-
-    # Create a mask from the edge image where the edges are white
-    mask = edge_image.point(lambda p: p > 0 and 255)
-
-    # Create an image with red edges
-    red_edges = Image.new("RGB", original_image.size, (255, 0, 0))
-    red_edges.paste(original_image, mask=Image.fromarray(255 - np.array(mask)))
-
-    # Overlay the red edges onto the original image
-    overlaid_image = Image.composite(original_image, red_edges, mask)
-
-    # Save the overlaid image
-    base_filename = os.path.splitext(os.path.basename(original_image_path))[0]
-    overlay_filename = os.path.join(save_directory, f"{base_filename}_overlay.jpg")
-    overlaid_image.save(overlay_filename)
-    print(f"Overlay done! Overlay file: {overlay_filename}")
-
-    # Save a copy of the original image in the same directory
-    original_copy_filename = os.path.join(save_directory, f"{base_filename}_original.jpg")
-    original_image.save(original_copy_filename)
-    print(f"Original image copy saved! File: {original_copy_filename}")
-
 # Original Image
 image_original = r"C:\Development\AIICP\Images\Untreated\mountain.jpg"
 
 # Remove the extension
 old_filename = os.path.splitext(os.path.basename(image_original))[0]
 
-# Desired pixelation size (e.g., 256x256 pixels)
+# Desired pixelation size
 pixelation_size = 2**7
-n_colors = 2**4
+n_colors = 2**8
 image_contrast = 1
 
 # Choose dithering method
 use_floyd_steinberg = False  # Set to True for Floyd-Steinberg, False for simple rounding
 
-# Process the image
-processed_image = process_image(image_original, pixelation_size, n_colors, image_contrast, use_floyd_steinberg)
+# Process the image with unsharp mask
+apply_unsharp = True  # Set to True to apply unsharp masking
+processed_image_with_unsharp = process_image(image_original, pixelation_size, n_colors, image_contrast, use_floyd_steinberg, apply_unsharp)
 
-# Construct the filename using pixelation_size and n_colors
-new_filename = f"{old_filename}_{pixelation_size}_{n_colors}bit_{image_contrast}Contrast_{use_floyd_steinberg}.png"
-save_path = rf"C:\Development\aiicp\Images\Treated\{new_filename}"
-save_directory = os.path.dirname(save_path)
-processed_image.save(save_path)
+# Process the image without unsharp mask
+apply_unsharp = False  # Set to False to not apply unsharp masking
+processed_image_without_unsharp = process_image(image_original, pixelation_size, n_colors, image_contrast, use_floyd_steinberg, apply_unsharp)
 
-# Perform edge detection
-# edge_image_path = edge_detection(image_original, save_directory)
+# Construct the filenames
+new_filename_with_unsharp = f"{old_filename}_{pixelation_size}_{n_colors}bit_{image_contrast}Contrast_{use_floyd_steinberg}_unsharp.png"
+new_filename_without_unsharp = f"{old_filename}_{pixelation_size}_{n_colors}bit_{image_contrast}Contrast_{use_floyd_steinberg}_nosharp.png"
 
-# Overlay images
-# overlay_images(image_original, edge_image_path, save_directory)
+# Save paths
+save_path_with_unsharp = rf"C:\Development\aiicp\Images\Treated\{new_filename_with_unsharp}"
+save_path_without_unsharp = rf"C:\Development\aiicp\Images\Treated\{new_filename_without_unsharp}"
 
-print(f"It's Done! Name file: {new_filename}")
+# Save the images
+processed_image_with_unsharp.save(save_path_with_unsharp)
+processed_image_without_unsharp.save(save_path_without_unsharp)
+
+print(f"It's Done! Files saved:\n{new_filename_with_unsharp}\n{new_filename_without_unsharp}")
