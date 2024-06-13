@@ -75,9 +75,9 @@ def create_custom_palette(use_custom_palette=True):
         # Return detected palette from image data
         return None  # This will be handled in the process_image function
 
-def apply_unsharp_mask(image, kernel_size=(5, 5), sigma=1.0, strength=12):
+def apply_unsharp_mask(image, kernel_size=(5, 5), sigma=1.0, strength=3):
     """
-    Apply an unsharp mask to an image.
+    Apply an unsharp mask to an image and enhance border pixels with strongest color.
 
     Parameters:
     image (np.ndarray): The input image.
@@ -90,8 +90,18 @@ def apply_unsharp_mask(image, kernel_size=(5, 5), sigma=1.0, strength=12):
     """
     blurred = cv2.GaussianBlur(image, kernel_size, sigma)
     sharpened = float(strength + 1) * image - float(strength) * blurred
-    sharpened = np.clip(sharpened, 0, 255)
-    return sharpened.astype(np.uint8)
+    sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
+
+    # Enhance border pixels with strongest color
+    Lx, Ly, Lc = image.shape
+    for i in range(Lx):
+        for j in range(Ly):
+            if i == 0 or i == Lx - 1 or j == 0 or j == Ly - 1:
+                # Find the strongest color among the neighboring pixels
+                max_color = np.max(image[max(i-1, 0):min(i+2, Lx), max(j-1, 0):min(j+2, Ly)], axis=(0, 1))
+                sharpened[i, j] = max_color
+
+    return sharpened
 
 def process_image(image_path, pixelation_size, n_colors, contrast, use_floyd_steinberg, apply_unsharp, use_custom_palette):
     """
@@ -141,7 +151,7 @@ def process_image(image_path, pixelation_size, n_colors, contrast, use_floyd_ste
     return pixel_image, palette_info
 
 # Original Image
-image_original = r"C:\Development\AIICP\Images\Untreated\mountain.jpg"
+image_original = r"C:\Development\AIICP\Images\Untreated\river_mountain.jpeg"
 
 # Remove the extension
 old_filename = os.path.splitext(os.path.basename(image_original))[0]
