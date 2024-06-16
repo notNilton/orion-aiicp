@@ -183,6 +183,8 @@ new_filename_without_unsharp = f"{old_filename}_{pixelation_size}_{palette_info}
 save_path_with_unsharp = rf"C:\Development\aiicp\Images\Treated\{new_filename_with_unsharp}"
 save_path_without_unsharp = rf"C:\Development\aiicp\Images\Treated\{new_filename_without_unsharp}"
 
+
+#this is but a simple change on the code
 # Save the images
 processed_image_with_unsharp.save(save_path_with_unsharp)
 processed_image_without_unsharp.save(save_path_without_unsharp)
