@@ -151,13 +151,13 @@ def process_image(image_path, pixelation_size, n_colors, contrast, use_floyd_ste
     return pixel_image, palette_info
 
 # Original Image
-image_original = r"C:\Development\AIICP\Images\Untreated\river_mountain.jpeg"
+image_original = r"C:\Development\AIICP\Images\Untreated\capy.webp"
 
 # Remove the extension
 old_filename = os.path.splitext(os.path.basename(image_original))[0]
 
 # Desired pixelation size
-pixelation_size = 2**7
+pixelation_size = 2**8
 n_colors = 2**8
 image_contrast = 1
 
