@@ -1,4 +1,4 @@
-# ClariPix - An Artificial Intelligence Image Correction Pipeline
+# AICAP - Artificial Intelligence Correction and Augmentation Pipeline
 
 This Python script uses artificial intelligence techniques to process and transform an input image. The pipeline includes pixelation, palette reduction, dithering, and contrast enhancement.
 
