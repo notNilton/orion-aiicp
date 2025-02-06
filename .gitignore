@@ -1,0 +1,96 @@
+# Bytecode Python (Arquivos de bytecode do Python)
+*.pyc
+*.pyo
+__pycache__/
+
+# Arquivos de distribuição / empacotamento (Distribution / packaging)
+build/
+dist/
+eggs/
+.egg-info/
+wheel/
+wheels/
+*.whl
+MANIFEST
+
+# Virtualenv (Ambientes virtuais)
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# Logs e arquivos temporários (Logs and temp files)
+*.log
+*.tmp
+temp/
+tmp/
+*.bak
+*.swp
+*.swo
+*.diff
+*.patch
+*.lock*
+
+# Arquivos do sistema operacional (OS generated files)
+.DS_Store
+Thumbs.db
+
+# Arquivos de projeto e IDEs (Project and IDE files)
+.idea/
+.project
+.vscode/
+*.suo
+*.ntvs
+*.njsproj
+*.sln
+*.pdb
+*.user
+*.usertasks
+*.vspscc
+
+# Testes e cobertura (Test and coverage reports)
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+*.nosetests
+*.pytest_cache/
+.pytype_cache/
+.mypy_cache/
+.dmypy_cache/
+.pyre_cache/
+
+# Documentação (Documentation)
+_build/
+build/
+gh-pages/
+readthedocs/
+sphinx/
+sphinx-build/
+
+# Pasta de dados (Data folder)
+data/
+
+# Arquivos executáveis (Executables)
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Outros arquivos ignorados comuns (Other common ignored files)
+.Python
+.ropeproject
+*.orig
+*.rej
+.gitattributes
+.gitmodules
+
+# Pasta de módulos do node_modules (se você usar frontend)
+node_modules/
+
+# Arquivos de configuração gerados automaticamente (Auto-generated configuration files)
+.envrc
+.direnv
