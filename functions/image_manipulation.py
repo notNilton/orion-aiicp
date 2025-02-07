@@ -2,9 +2,44 @@
 from PIL import Image
 import numpy as np
 
+def simple_threshold(image):
+    
+    
+    """
+    Applies a simple thresholding to an image, converting each RGB component
+    of each pixel to either 0 or 255 based on its original value.
+
+    Args:
+        image (PIL.Image): The input image.
+
+    Returns:
+        PIL.Image: The thresholded image.
+    """
+
+    # Convert the image to RGB mode if it's not already
+
+    # Convert the image to a NumPy array for easier manipulation
+    pixels = np.array(image, dtype=np.uint8)
+
+    # Get the width and height of the image
+    height, width, _ = pixels.shape # Correct order for numpy array shape
+
+    # Iterate over each pixel and apply thresholding to each color component
+    for y in range(height):
+        for x in range(width):
+            for c in range(3):  # Iterate over the three color channels (R, G, B)
+                old_pixel = pixels[y, x, c]
+                new_pixel = 255 if old_pixel > 127 else 0
+                pixels[y, x, c] = new_pixel
+
+    # Convert the NumPy array back to a PIL image
+    thresholded_image = Image.fromarray(pixels)
+
+    return thresholded_image
+
 def floyd_steinberg(image):
     """
-    Applies the Floyd-Steinberg dithering algorithm to an image.
+    Applies Floyd-Steinberg dithering to an image.
 
     Args:
         image (PIL.Image): The input image.
@@ -49,36 +84,3 @@ def floyd_steinberg(image):
     dithered_image = Image.fromarray(pixels.astype(np.uint8))
 
     return dithered_image
-
-def simple_threshold(image):
-    """
-    Applies a simple thresholding to an image, converting each RGB component
-    of each pixel to either 0 or 255 based on its original value.
-
-    Args:
-        image (PIL.Image): The input image.
-
-    Returns:
-        PIL.Image: The thresholded image.
-    """
-
-    # Convert the image to RGB mode if it's not already
-
-    # Convert the image to a NumPy array for easier manipulation
-    pixels = np.array(image, dtype=np.uint8)
-
-    # Get the width and height of the image
-    height, width, _ = pixels.shape # Correct order for numpy array shape
-
-    # Iterate over each pixel and apply thresholding to each color component
-    for y in range(height):
-        for x in range(width):
-            for c in range(3):  # Iterate over the three color channels (R, G, B)
-                old_pixel = pixels[y, x, c]
-                new_pixel = 255 if old_pixel > 127 else 0
-                pixels[y, x, c] = new_pixel
-
-    # Convert the NumPy array back to a PIL image
-    thresholded_image = Image.fromarray(pixels)
-
-    return thresholded_image
